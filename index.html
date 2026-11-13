@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teddy Surprise 🎁</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #06060a;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      user-select: none;
+      cursor: pointer;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let W, H, scale;
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      scale = Math.min(W / 650, H / 720, 1.15);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    const KARAKTERLER = "@%#*+=-:.~^/\\|()[]{}<>01";
+    const MESAJ = "❤️ Seni Seviyorum ❤️";
+
+    function hediyeKutusuOlustur() {
+      const noktalar = [];
+      for (let y = -90; y <= 110; y += 11) {
+        for (let x = -110; x <= 110; x += 10) {
+          const kurdele = (x >= -15 && x <= 15) || (y >= -5 && y <= 20);
+          noktalar.push({
+            x,
+            y,
+            renk: kurdele ? "#ff4d6d" : "#f8f9fa"
+          });
+        }
+      }
+      // Fiyonk
+      for (let t = 0; t < 360; t += 7) {
+        const rad = (t * Math.PI) / 180;
+        noktalar.push({
+          x: -35 + 34 * Math.cos(rad),
+          y: -115 + 19 * Math.sin(rad),
+          renk: "#ff758f"
+        });
+        noktalar.push({
+          x: 35 + 34 * Math.cos(rad),
+          y: -115 + 19 * Math.sin(rad),
+          renk: "#ff758f"
+        });
+      }
+      return noktalar;
+    }
+
+    function ayicikOlustur() {
+      const noktalar = [];
+      function daireDoldur(cx, cy, r, renk, bolge = "govde", adim = 10) {
+        for (let y = cy - r; y <= cy + r; y += adim) {
+          for (let x = cx - r; x <= cx + r; x += adim) {
+            if ((x - cx) ** 2 + (y - cy) ** 2 <= r ** 2) {
+              noktalar.push({ x, y, renk, bolge });
+            }
+          }
+        }
+      }
+
+      // Kulaklar
+      daireDoldur(-90, -140, 40, "#8d5524");
+      daireDoldur(-90, -140, 21, "#e0ac69");
+      daireDoldur(90, -140, 40, "#8d5524");
+      daireDoldur(90, -140, 21, "#e0ac69");
+
+      // Gövde ve Göbek
+      daireDoldur(0, 120, 110, "#8d5524");
+      daireDoldur(0, 130, 65, "#e0ac69");
+      // Kalp
+      daireDoldur(0, 125, 24, "#ff2a55", "kalp", 8);
+
+      // Kollar ve Ayaklar
+      daireDoldur(-120, 80, 36, "#a46628");
+      daireDoldur(120, 80, 36, "#a46628");
+      daireDoldur(-80, 220, 42, "#a46628");
+      daireDoldur(-80, 220, 21, "#e0ac69");
+      daireDoldur(80, 220, 42, "#a46628");
+      daireDoldur(80, 220, 21, "#e0ac69");
+
+      // Kafa ve Yüz
+      daireDoldur(0, -50, 90, "#a46628");
+      daireDoldur(0, -25, 40, "#f1c27d");
+      daireDoldur(0, -40, 13, "#3d2314", "govde", 7);
+      daireDoldur(-33, -70, 9, "#111111", "govde", 6);
+      daireDoldur(33, -70, 9, "#111111", "govde", 6);
+      daireDoldur(-52, -35, 13, "#ff8fa3", "govde", 8);
+      daireDoldur(52, -35, 13, "#ff8fa3", "govde", 8);
+
+      return noktalar;
+    }
+
+    const kutuNoktalari = hediyeKutusuOlustur();
+    const ayiNoktalari = ayicikOlustur();
+    const maks = Math.max(kutuNoktalari.length, ayiNoktalari.length);
+
+    while (kutuNoktalari.length < maks) {
+      kutuNoktalari.push(kutuNoktalari[Math.floor(Math.random() * kutuNoktalari.length)]);
+    }
+    while (ayiNoktalari.length < maks) {
+      ayiNoktalari.push(ayiNoktalari[Math.floor(Math.random() * ayiNoktalari.length)]);
+    }
+
+    // Ayıcık noktalarını karıştır
+    for (let i = ayiNoktalari.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ayiNoktalari[i], ayiNoktalari[j]] = [ayiNoktalari[j], ayiNoktalari[i]];
+    }
+
+    const parcaciklar = [];
+    for (let i = 0; i < maks; i++) {
+      parcaciklar.push({
+        kx: kutuNoktalari[i].x,
+        ky: kutuNoktalari[i].y,
+        x: kutuNoktalari[i].x,
+        y: kutuNoktalari[i].y,
+        tx: ayiNoktalari[i].x,
+        ty: ayiNoktalari[i].y,
+        krenk: kutuNoktalari[i].renk,
+        arenk: ayiNoktalari[i].renk,
+        bolge: ayiNoktalari[i].bolge,
+        karakter: KARAKTERLER[Math.floor(Math.random() * KARAKTERLER.length)],
+        vx: 0,
+        vy: 0
+      });
+    }
+
+    const yildizlar = Array.from({ length: 85 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      hiz: 0.4 + Math.random() * 1.1,
+      renk: ["#ffffff", "#ffccd5", "#a2d2ff", "#cdb4db", "#ffd166"][Math.floor(Math.random() * 5)]
+    }));
+
+    let acildiMi = false;
+    let adim = 0;
+    let zaman = 0;
+
+    function ac() {
+      if (acildiMi) return;
+      acildiMi = true;
+      adim = 0;
+      for (const p of parcaciklar) {
+        const aci = Math.atan2(p.y, p.x) + (Math.random() - 0.5);
+        const hiz = 6 + Math.random() * 16;
+        p.vx = Math.cos(aci) * hiz;
+        p.vy = Math.sin(aci) * hiz;
+      }
+    }
+
+    window.addEventListener("click", ac);
+    window.addEventListener("touchstart", ac);
+
+    function ciz() {
+      zaman += 0.05;
+      ctx.fillStyle = "#06060a";
+      ctx.fillRect(0, 0, W, H);
+
+      // Yıldızlar
+      ctx.font = "12px Consolas, monospace";
+      ctx.textAlign = "center";
+      for (const y of yildizlar) {
+        y.y -= y.hiz;
+        if (y.y < 0) {
+          y.y = H;
+          y.x = Math.random() * W;
+        }
+        ctx.fillStyle = y.renk;
+        ctx.fillText("*", y.x, y.y);
+      }
+
+      const cx = W / 2;
+      const cy = H / 2 + 20 * scale;
+      ctx.font = `bold ${Math.max(10, Math.round(12 * scale))}px Consolas, monospace`;
+
+      if (!acildiMi) {
+        const ziplama = Math.sin(zaman * 3) * 6;
+        const titreme = Math.sin(zaman * 10) * 1.5;
+
+        for (const p of parcaciklar) {
+          if (Math.random() < 0.05) {
+            p.karakter = KARAKTERLER[Math.floor(Math.random() * KARAKTERLER.length)];
+          }
+          ctx.fillStyle = p.krenk;
+          ctx.fillText(
+            p.karakter,
+            cx + (p.kx + titreme) * scale,
+            cy + (p.ky + ziplama) * scale
+          );
+        }
+
+        ctx.fillStyle = "#adb5bd";
+        ctx.font = `bold ${Math.round(18 * scale)}px 'Segoe UI', sans-serif`;
+        ctx.fillText("🎁 Hediye kutusuna dokun...", cx, cy + 190 * scale);
+      } else {
+        adim++;
+        const nefesY = adim > 45 ? Math.sin(zaman * 2.2) * 7 : 0;
+        const kalpOlcek = adim > 45 ? 1 + Math.sin(zaman * 6) * 0.2 : 1;
+
+        for (const p of parcaciklar) {
+          let renk = p.krenk;
+          if (adim < 18) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.93;
+            p.vy *= 0.93;
+          } else {
+            let hx = p.tx;
+            let hy = p.ty + nefesY;
+
+            if (p.bolge === "kalp" && adim > 45) {
+              hx = p.tx * kalpOlcek;
+              hy = 125 + (p.ty - 125) * kalpOlcek + nefesY;
+            }
+
+            p.x += (hx - p.x) * 0.11;
+            p.y += (hy - p.y) * 0.11;
+            if (adim >= 22) renk = p.arenk;
+          }
+
+          if (Math.random() < 0.1) {
+            p.karakter = KARAKTERLER[Math.floor(Math.random() * KARAKTERLER.length)];
+          }
+
+          ctx.fillStyle = renk;
+          ctx.fillText(p.karakter, cx + p.x * scale, cy + p.y * scale);
+        }
+
+        if (adim >= 35) {
+          const harfSayisi = Math.min(MESAJ.length, Math.floor((adim - 35) / 2) + 1);
+          ctx.fillStyle = "#ff4d6d";
+          ctx.font = `bold ${Math.round(34 * scale)}px 'Segoe UI', sans-serif`;
+          ctx.fillText(MESAJ.slice(0, harfSayisi), cx, cy - 230 * scale);
+        }
+      }
+
+      requestAnimationFrame(ciz);
+    }
+
+    ciz();
+  </script>
+</body>
+</html>
